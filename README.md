@@ -1,5 +1,5 @@
 # Queue-Counter
-A simple queue counter for child play.
+A simple queue counter for child play. Avalable on [https://chrisacrobat.github.io/Queue-Counter/](GitHub Pages).
 
 ## Font
 The font [Digital-7](https://github.com/ChrisAcrobat/Queue-Counter/blob/main/readme.txt)" is from Sizenko Alexander.
