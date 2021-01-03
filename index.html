@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Queue counter</title>
+		<meta content="width=device-width, initial-scale=1.0" name="viewport">
+		<meta content="yes" name="mobile-web-app-capable">
+		<style>
+			@font-face{
+				font-family:'digital-clock-font';
+				src: url('digital-7 (mono).ttf');
+			}
+			html, body, #counter {
+				height: -webkit-fill-available;
+			}
+			html {
+				user-select: none;
+				background-color: black;
+			}
+			#counter {
+				color: red;
+				text-align: center;
+				vertical-align: middle;
+				font-family: 'digital-clock-font';
+				font-size: 100px;
+			}
+		</style>
+		<script>
+			'use strict'
+			function a(){
+				let elementCounter = document.getElementById('counter');
+				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
+				function raise(){
+					let currentValue = parseInt(elementCounter.innerHTML);
+					elementCounter.innerHTML = Math.max(1, (currentValue+1)%10);
+					notification.play();
+				}
+				document.body.onclick = raise;
+				document.body.onkeyup = function(keyboardEvent){
+					if(keyboardEvent.code === 'Space'){
+						raise();
+					}
+				}
+			}
+		</script>
+	</head>
+	<body onload="a()">
+		<div id="counter">1</div>
+	</body>
+</html>
