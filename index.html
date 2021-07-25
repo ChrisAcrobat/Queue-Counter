@@ -11,42 +11,191 @@
 				src: url('digital-7/digital-7 (mono).ttf');
 			}
 			html, body, #counter {
-				height: -webkit-fill-available;
-			}
-			html {
-				cursor: none;
-				user-select: none;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				color: white;
 				background-color: black;
 			}
-			#counter {
+			#error-message {
 				color: red;
-				font-family: 'digital-clock-font';
-				font-size: 100vmin;
+			}
+			#admin {
+				color: black;
+				background-color: white;
+				height: 100%;
+			}
+			#admin > * {
+				padding: 8px;
+			}
+			#terminals {
+				width: fit-content;
+			}
+			.center-height {
+				display: flex;
+				height: 100%;
+				justify-content: center;
+				align-items: center;
+			}
+			.center-width {
 				display: flex;
 				justify-content: center;
 				align-items: center;
 			}
+			#counters {
+				cursor: none;
+				user-select: none;
+				color: red;
+				font-family: 'digital-clock-font';
+				font-size: 100vmin;
+			}
+			.hidden {
+				display: none;
+			}
+			.invisible {
+				visibility: hidden;
+			}
 		</style>
+		<script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
 		<script>
 			'use strict'
 			function a(){
-				let elementCounter = document.getElementById('counter');
+				let element_joinRoom = document.getElementById('join-room');
+				let element_admin = document.getElementById('admin');
+				let element_peerId = document.getElementById('peer-id');
+				let element_peerIdSelect = document.getElementById('peer-id-select');
+				let element_btnJoin = document.getElementById('btn-join');
+				let element_btnHost = document.getElementById('btn-host');
+				let element_terminals = document.getElementById('terminals');
+				let element_terminal = document.getElementById('terminal');
 				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
-				function raise(){
+				let peer;
+				element_btnHost.addEventListener('click', ()=>{
+					let state = {terminals: [{id: '3343234-655435-342324', value: 0}]};
+					let connections = [];
+					function syncState(){
+						connections.forEach(dataConnection => {
+							dataConnection.send({type: 'state-update', value: state});
+						});
+					}
+					function addTerminal(dataConnection){
+						connections.push(dataConnection.peer);
+						let div = document.createElement('div');
+						div.innerHTML = dataConnection.peer;
+						div.id = 'terminal-'+dataConnection.peer;
+						element_terminals.appendChild(div);
+					}
+					function removeTerminal(dataConnection){
+						let index = connections.findIndex(d => d === dataConnection);
+						if(-1 < index){
+							connections.splice(index, 1);
+						}
+						let div = document.getElementById('terminal-'+dataConnection.peer);
+						div.parentElement.remove(div);
+					}
+					peer = createPeer(element_peerIdSelect.value, ID => {
+						element_peerId.innerHTML = ID;
+						element_admin.classList.remove('hidden');
+						peer.on('connection', dataConnection => {
+							dataConnection.on('open', ()=>{
+								addTerminal(dataConnection);
+								dataConnection.send(state);
+							});
+							dataConnection.on('data', data => {
+								switch(data.type){
+									case '':
+										break
+								}
+							});
+							dataConnection.on('close', ()=>{
+								removeTerminal(dataConnection);
+							});
+						});
+					});
+				});
+				element_btnJoin.addEventListener('click', ()=>{
+					element_joinRoom.classList.add('hidden');
+					document.getElementById('select-mode').classList.remove('hidden');
+					peer = createPeer(undefined, ID=>{
+						console.log('// TODO: Display ID ('+ID+') if terminals is empty.');
+						let dataConnection = peer.connect(element_peerIdSelect.value);
+						dataConnection.on('open', ()=>{
+							// Send messages
+							dataConnection.send('2!');
+							// Receive messages
+							dataConnection.on('data', data => {
+								switch(data.type){
+									case 'state-update':
+										console.log(data.value);
+										break
+								}
+							});
+						});
+					});
+				});
+				function createPeer(id='', callback=()=>{}){
+					let peer = new Peer(id.toLocaleLowerCase());
+					element_peerIdSelect.disabled = true;
+					element_btnHost.disabled = true;
+					element_btnJoin.disabled = true;
+					peer.on('open', ID =>{
+						element_joinRoom.classList.add('hidden');
+						callback(ID);
+					});
+					peer.on('error', err => {
+						element_peerIdSelect.disabled = false;
+						element_btnHost.disabled = false;
+						element_btnJoin.disabled = false;
+						document.getElementById('error-message').innerHTML = err;
+						document.getElementById('error-message').classList.remove('invisible');
+					});
+					return peer;
+				}
+				function raise(elementCounter){
 					let currentValue = parseInt(elementCounter.innerHTML);
 					elementCounter.innerHTML = Math.max(1, (currentValue+1)%10);
 					notification.play();
 				}
+				/* TODO: Reuse on counter
 				document.body.onclick = raise;
+				TODO: Reuse on counter is single
 				document.body.onkeyup = function(keyboardEvent){
 					if(keyboardEvent.code === 'Space'){
 						raise();
 					}
 				}
+				*/
 			}
 		</script>
 	</head>
 	<body onload="a()">
-		<div id="counter">1</div>
+		<div id="join-room" class="center-height">
+			<div>
+				<div class="center-width">
+					<i>Queue ID</i>
+				</div>
+				<div class="center-width">
+					<input id="peer-id-select" type="text">
+				</div>
+				<div class="center-width">
+					<input id="btn-host" type="button" value="Host">
+					<input id="btn-join" type="button" value="Join">
+				</div>
+				<div id="error-message" class="invisible center-width"></div>
+			</div>
+		</div>
+		<div id="select-mode" class="hidden"></div>
+		<div id="admin" class="hidden">
+			<div>
+				<div>
+					<b>Queue ID:</b>
+					<span id="peer-id"></span>
+				</div>
+				<fieldset id="terminals">
+					<legend>Terminals</legend>
+				</fieldset>
+			</div>
+		</div>
+		<div id="terminal" class="hidden"></div>
 	</body>
 </html>
