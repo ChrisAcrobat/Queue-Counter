@@ -49,6 +49,24 @@
 				font-family: 'digital-clock-font';
 				font-size: 100vmin;
 			}
+			fieldset {
+				display: block !important;
+				border-color: var(--main-color);
+				margin-bottom: 8px;
+			}
+			fieldset>legend {
+				cursor: pointer;
+				user-select: none;
+			}
+			fieldset>legend::after {
+				content: ' ▼';
+			}
+			fieldset.hidden>legend::after {
+				content: ' ▲';
+			}
+			fieldset.hidden>:not(legend) {
+				display: none;
+			}
 			.hidden {
 				display: none;
 			}
@@ -67,17 +85,44 @@
 				let element_btnJoin = document.getElementById('btn-join');
 				let element_btnHost = document.getElementById('btn-host');
 				let element_terminals = document.getElementById('terminals');
-				let element_terminal = document.getElementById('terminal');
+				let element_terminal = document.getElementById('terminal');queues
+				let element_addQueue = document.getElementById('add-queue');
+				let element_queues = document.getElementById('queues');
 				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 				let peer;
 				element_btnHost.addEventListener('click', ()=>{
-					let state = {terminals: [{id: '3343234-655435-342324', value: 0}]};
+					let state = {
+						terminals: [
+							{
+								id: '3343234-655435-342324',
+								display: [
+									{
+										queue: 'name',
+										displayName: false,
+										ticketRaiser: false
+									}
+								]
+							}
+						],
+						queues: [
+							{
+								name: 'name',
+								value: 0,
+								ticketsRaised: 1
+							}
+						]
+					};
 					let connections = [];
-					function syncState(){
-						connections.forEach(dataConnection => {
-							dataConnection.send({type: 'state-update', value: state});
-						});
+					function syncState(previousState){
+						let currentState = JSON.stringify(state);
+						if(previousState !== currentState){
+							connections.forEach(dataConnection => {
+								dataConnection.send({type: 'state-update', value: JSON.parse(currentState)});
+							});
+						}
+						setTimeout(syncState, 100, currentState);
 					}
+					syncState();
 					function addTerminal(dataConnection){
 						connections.push(dataConnection.peer);
 						let div = document.createElement('div');
@@ -93,6 +138,44 @@
 						let div = document.getElementById('terminal-'+dataConnection.peer);
 						div.parentElement.remove(div);
 					}
+					element_addQueue.addEventListener('click', ()=>{
+						function validateAndUpdate(){
+							queueNumber.valueAsNumber = Math.max(queueNumber.min, (queueNumber.valueAsNumber)%queueNumber.max);
+							state.queues.filter(q => q.name).forEach(q => q.value = queueNumber.valueAsNumber);
+						}
+						let fieldset = document.createElement('fieldset');
+						let legend = document.createElement('legend');
+						do{
+							legend.innerHTML = prompt('Name of the queue:');
+							if(legend.innerHTML === ''){
+								alert('Error: Queue has to have a name.');
+							}
+							if([...document.getElementsByTagName('legend')].find(l => l.innerHTML === legend.innerHTML)){
+								alert('Error: Name already given to another queue.');
+								legend.innerHTML = '';
+							}
+						}while(legend.innerHTML === '');
+						fieldset.appendChild(legend);
+						let queueNumber = document.createElement('input');
+						queueNumber.type = 'number';
+						queueNumber.value = 1;
+						queueNumber.min = 1;
+						queueNumber.max = 10;
+						queueNumber.onkeyup = keyboardEvent => {
+							if(keyboardEvent.code === 'Space'){
+								queueNumber.valueAsNumber++;
+								validateAndUpdate();
+							}
+						}
+						queueNumber.onchange = validateAndUpdate;
+						fieldset.appendChild(queueNumber);
+						element_queues.appendChild(fieldset);
+					});
+					document.body.addEventListener('click', pointerEvent=>{
+						if(pointerEvent.srcElement.localName === 'legend'){
+							pointerEvent.srcElement.parentElement.classList.toggle('hidden');
+						}
+					});
 					peer = createPeer(element_peerIdSelect.value, ID => {
 						element_peerId.innerHTML = ID;
 						element_admin.classList.remove('hidden');
@@ -103,7 +186,7 @@
 							});
 							dataConnection.on('data', data => {
 								switch(data.type){
-									case '':
+									case 'queue-change':
 										break
 								}
 							});
@@ -156,15 +239,6 @@
 					elementCounter.innerHTML = Math.max(1, (currentValue+1)%10);
 					notification.play();
 				}
-				/* TODO: Reuse on counter
-				document.body.onclick = raise;
-				TODO: Reuse on counter is single
-				document.body.onkeyup = function(keyboardEvent){
-					if(keyboardEvent.code === 'Space'){
-						raise();
-					}
-				}
-				*/
 			}
 		</script>
 	</head>
@@ -191,11 +265,25 @@
 					<b>Queue ID:</b>
 					<span id="peer-id"></span>
 				</div>
-				<fieldset id="terminals">
-					<legend>Terminals</legend>
-				</fieldset>
+				<div>
+					<fieldset id="terminals">
+						<legend>Terminals</legend>
+					</fieldset>
+					<fieldset id="queues">
+						<legend>Queues</legend>
+						<input id="add-queue" type="button" value="Add queue">
+					</fieldset>
+				</div>
 			</div>
 		</div>
 		<div id="terminal" class="hidden"></div>
+		<div id="queue-ticket" class="hidden">
+			<!--
+				TODO:
+					1. List all queues.
+					2. When click on queue, next ticket is displayed and stored.
+					3. When ticket is current a sound is played from device.
+			-->
+		</div>
 	</body>
 </html>
