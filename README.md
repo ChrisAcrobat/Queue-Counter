@@ -1,11 +1,11 @@
 # Queue-Counter
-A simple queue counter for child play. Avalable on [GitHub Pages](https://chrisacrobat.github.io/Queue-Counter/).
+A simple queue counter system. Available on [GitHub Pages](https://chrisacrobat.github.io/Queue-Counter/).
 
 ## TODO
 - Use PeerJS to sync queue counter.
 - On start, select host or join.
 - After start, select viewer or manager.
-- Manager list all queues with butten to step one up or down, or set new value. Can also create new queues and select if name should be visible. Also map queues to viewers.
+- Manager list all queues with button to step one up or down, or set new value. Can also create new queues and select if name should be visible. Also map queues to viewers.
 - Viewer list queue numbers for selected queues. Play sound on visible change.
 
 ## Font
