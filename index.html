@@ -28,8 +28,20 @@
 			#admin > * {
 				padding: 8px;
 			}
+			#terminal {
+				height: 100%;
+			}
 			#terminals {
 				width: fit-content;
+			}
+			.terminal-item {
+				display: flex;
+			}
+			#terminal-config-queues {
+				display: flex;
+			}
+			#terminal-config-queues>* {
+				flex-grow: 1;
 			}
 			.center-height {
 				display: flex;
@@ -49,22 +61,17 @@
 				font-family: 'digital-clock-font';
 				font-size: 100vmin;
 			}
-			fieldset {
-				display: block !important;
-				border-color: var(--main-color);
-				margin-bottom: 8px;
-			}
-			fieldset>legend {
+			fieldset.expandable>legend, .clickable {
 				cursor: pointer;
 				user-select: none;
 			}
-			fieldset>legend::after {
+			fieldset.expandable>legend::after {
 				content: ' ▼';
 			}
-			fieldset.hidden>legend::after {
+			fieldset.expandable.hidden>legend::after {
 				content: ' ▲';
 			}
-			fieldset.hidden>:not(legend) {
+			fieldset.expandable.hidden>:not(legend) {
 				display: none;
 			}
 			.hidden {
@@ -85,37 +92,40 @@
 				let element_btnJoin = document.getElementById('btn-join');
 				let element_btnHost = document.getElementById('btn-host');
 				let element_terminals = document.getElementById('terminals');
-				let element_terminal = document.getElementById('terminal');queues
+				let element_terminal = document.getElementById('terminal');
 				let element_addQueue = document.getElementById('add-queue');
 				let element_queues = document.getElementById('queues');
+				let element_terminalConfig = document.getElementById('terminal-config');
+				let element_terminalConfig_nickname = document.getElementById('terminal-config-nickname');
 				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 				let peer;
+				let updateUICallback = ()=>console.error('Callback `updateUICallback` is not defined.');
+				window.onhashchange = ()=>{
+					element_peerIdSelect.value = location.hash.substr(1);
+				}
+				window.onhashchange();
 				element_btnHost.addEventListener('click', ()=>{
+					updateUICallback = ()=>{
+						state.terminals.forEach(t => {
+							let terminalItem_name = document.getElementById('terminal-'+t.id+'-name');
+							terminalItem_name.innerHTML = t.nickname ? t.nickname : t.id;
+						})
+					}
 					let state = {
-						terminals: [
-							{
-								id: '3343234-655435-342324',
-								display: [
-									{
-										queue: 'name',
-										displayName: false,
-										ticketRaiser: false
-									}
-								]
-							}
-						],
+						terminals: [],
 						queues: [
-							{
+							/*{ // Example
 								name: 'name',
 								value: 0,
 								ticketsRaised: 1
-							}
+							}*/
 						]
 					};
 					let connections = [];
 					function syncState(previousState){
 						let currentState = JSON.stringify(state);
 						if(previousState !== currentState){
+							updateUICallback();
 							connections.forEach(dataConnection => {
 								dataConnection.send({type: 'state-update', value: JSON.parse(currentState)});
 							});
@@ -124,26 +134,74 @@
 					}
 					syncState();
 					function addTerminal(dataConnection){
-						connections.push(dataConnection.peer);
+						connections.push(dataConnection);
+						state.terminals.push({
+							id: dataConnection.peer,
+								nickname: '',
+								display: [
+									/*{
+										queue: 'name',
+										displayName: false,
+										ticketRaiser: false
+									}*/
+								]
+						});
 						let div = document.createElement('div');
-						div.innerHTML = dataConnection.peer;
+						let speakerCheckbox = document.createElement('input');
 						div.id = 'terminal-'+dataConnection.peer;
+						div.classList.add('terminal-item');
+						speakerCheckbox.type = 'checkbox';
+						speakerCheckbox.classList.add('speaker');
+						div.appendChild(speakerCheckbox);
+						let terminalName = document.createElement('label');
+						terminalName.innerHTML = '<span id="terminal-'+dataConnection.peer+'-name">'+dataConnection.peer+'</span> 🔧';
+						terminalName.classList.add('clickable');
+						terminalName.onclick = ()=>{
+							element_terminals.classList.add('hidden');
+							element_queues.classList.add('hidden');
+							state.terminals.filter(t => t.id === dataConnection.peer).forEach(t => {
+								element_terminalConfig_nickname.value = t.nickname;
+								element_terminalConfig_nickname.placeholder = t.id;
+							});
+							element_terminalConfig.classList.remove('hidden');
+							document.getElementById('terminal-config-id').innerHTML = 'Terminal '+terminalName.innerHTML;
+							document.getElementById('terminal-config-save').onclick = ()=>{
+								state.terminals.filter(t => t.id === dataConnection.peer).forEach(t => {
+									t.nickname = element_terminalConfig_nickname.value;
+								});
+								element_terminalConfig.classList.add('hidden');
+								element_terminals.classList.remove('hidden');
+								element_queues.classList.remove('hidden');
+							};
+						}
+						div.appendChild(terminalName);
 						element_terminals.appendChild(div);
 					}
 					function removeTerminal(dataConnection){
-						let index = connections.findIndex(d => d === dataConnection);
-						if(-1 < index){
-							connections.splice(index, 1);
-						}
+						[
+							{
+								index: state.terminals.findIndex(d => d.id === dataConnection.peer), 
+								array: state.terminals
+							},
+							{
+								index: connections.findIndex(d => d === dataConnection),
+								array: connections
+							}
+						].forEach(o => {
+							if(-1 < o.index){
+								o.array.splice(o.index, 1);
+							}
+						});
 						let div = document.getElementById('terminal-'+dataConnection.peer);
-						div.parentElement.remove(div);
+						div.parentElement.removeChild(div);
 					}
 					element_addQueue.addEventListener('click', ()=>{
 						function validateAndUpdate(){
 							queueNumber.valueAsNumber = Math.max(queueNumber.min, (queueNumber.valueAsNumber)%queueNumber.max);
-							state.queues.filter(q => q.name).forEach(q => q.value = queueNumber.valueAsNumber);
+							state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
 						}
 						let fieldset = document.createElement('fieldset');
+						fieldset.classList.add('expandable');
 						let legend = document.createElement('legend');
 						do{
 							legend.innerHTML = prompt('Name of the queue:');
@@ -176,7 +234,8 @@
 							pointerEvent.srcElement.parentElement.classList.toggle('hidden');
 						}
 					});
-					peer = createPeer(element_peerIdSelect.value, ID => {
+					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
+						location.hash = ID;
 						element_peerId.innerHTML = ID;
 						element_admin.classList.remove('hidden');
 						peer.on('connection', dataConnection => {
@@ -198,26 +257,39 @@
 				});
 				element_btnJoin.addEventListener('click', ()=>{
 					element_joinRoom.classList.add('hidden');
-					document.getElementById('select-mode').classList.remove('hidden');
+					//document.getElementById('select-mode').classList.remove('hidden');
+					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.');
+					element_terminal.classList.remove('hidden')
 					peer = createPeer(undefined, ID=>{
-						console.log('// TODO: Display ID ('+ID+') if terminals is empty.');
-						let dataConnection = peer.connect(element_peerIdSelect.value);
+						updateUICallback = state=>{
+							state.terminals.filter(t => t.id === ID).forEach(thisTerminal => {
+								if(!thisTerminal.display.length){
+									document.getElementById('terminal-id').innerHTML = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
+								}
+							})
+						}
+						let id = element_peerIdSelect.value.toLocaleLowerCase();
+						let dataConnection = peer.connect(id);
 						dataConnection.on('open', ()=>{
+							location.hash = id;
 							// Send messages
 							dataConnection.send('2!');
 							// Receive messages
 							dataConnection.on('data', data => {
 								switch(data.type){
 									case 'state-update':
-										console.log(data.value);
+										updateUICallback(data.value);
 										break
 								}
 							});
 						});
+						dataConnection.on('close', ()=>{
+							location.reload();
+						});
 					});
 				});
 				function createPeer(id='', callback=()=>{}){
-					let peer = new Peer(id.toLocaleLowerCase());
+					let peer = new Peer(id);
 					element_peerIdSelect.disabled = true;
 					element_btnHost.disabled = true;
 					element_btnJoin.disabled = true;
@@ -266,17 +338,43 @@
 					<span id="peer-id"></span>
 				</div>
 				<div>
-					<fieldset id="terminals">
+					<fieldset id="terminals" class="expandable">
 						<legend>Terminals</legend>
+						<input id="speaker" type="button" value="Speak">
 					</fieldset>
-					<fieldset id="queues">
+					<fieldset id="queues" class="expandable">
 						<legend>Queues</legend>
 						<input id="add-queue" type="button" value="Add queue">
 					</fieldset>
 				</div>
+				<fieldset id="terminal-config" class="hidden">
+					<legend id="terminal-config-id"></legend>
+					<fieldset>
+						<legend>Config</legend>
+						<label for="terminal-config-nickname">Name</label>
+						<input id="terminal-config-nickname" type="text" value="">
+						<input id="terminal-config-display-name" type="checkbox">
+						<label for="terminal-config-display-name">Display name</label>
+					</fieldset>
+					<div id="terminal-config-queues">
+						<fieldset>
+							<legend>Available queues</legend>
+						</fieldset>
+						<fieldset>
+							<legend>Selected queues</legend>
+						</fieldset>
+					</div>
+					<input id="terminal-config-save" type="button" value="Save">
+				</fieldset>
 			</div>
 		</div>
-		<div id="terminal" class="hidden"></div>
+		<div id="terminal" class="hidden">
+			<div class="center-height">
+				<div>
+					<div id="terminal-id" class="center-width"></div>
+				</div>
+			</div>
+		</div>
 		<div id="queue-ticket" class="hidden">
 			<!--
 				TODO:
