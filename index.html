@@ -68,10 +68,10 @@
 			fieldset.expandable>legend::after {
 				content: ' ▼';
 			}
-			fieldset.expandable.hidden>legend::after {
+			fieldset.expandable.collapsed>legend::after {
 				content: ' ▲';
 			}
-			fieldset.expandable.hidden>:not(legend) {
+			fieldset.expandable.collapsed>:not(legend) {
 				display: none;
 			}
 			.hidden {
@@ -230,8 +230,8 @@
 						element_queues.appendChild(fieldset);
 					});
 					document.body.addEventListener('click', pointerEvent=>{
-						if(pointerEvent.srcElement.localName === 'legend'){
-							pointerEvent.srcElement.parentElement.classList.toggle('hidden');
+						if(pointerEvent.srcElement.localName === 'legend' && pointerEvent.srcElement.parentElement.classList.contains('expandable')){
+							pointerEvent.srcElement.parentElement.classList.toggle('collapsed');
 						}
 					});
 					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
