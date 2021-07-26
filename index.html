@@ -197,7 +197,9 @@
 					}
 					element_addQueue.addEventListener('click', ()=>{
 						function validateAndUpdate(){
-							queueNumber.valueAsNumber = Math.max(queueNumber.min, (queueNumber.valueAsNumber)%queueNumber.max);
+							if(0 < queueNumber.max){
+								queueNumber.valueAsNumber = Math.max(queueNumber.min, queueNumber.valueAsNumber%queueNumber.max);
+							}
 							state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
 						}
 						let fieldset = document.createElement('fieldset');
@@ -218,7 +220,6 @@
 						queueNumber.type = 'number';
 						queueNumber.value = 1;
 						queueNumber.min = 1;
-						queueNumber.max = 10;
 						queueNumber.onkeyup = keyboardEvent => {
 							if(keyboardEvent.code === 'Space'){
 								queueNumber.valueAsNumber++;
@@ -227,6 +228,15 @@
 						}
 						queueNumber.onchange = validateAndUpdate;
 						fieldset.appendChild(queueNumber);
+						let queueNumberMax = document.createElement('input');
+						queueNumberMax.type = 'number';
+						queueNumberMax.value = 9;
+						queueNumberMax.min = 0;
+						queueNumberMax.onchange = ()=>{
+							queueNumber.max = 0 < queueNumberMax.valueAsNumber ? queueNumberMax.valueAsNumber+1 : undefined;
+						};
+						queueNumberMax.onchange(),
+						fieldset.appendChild(queueNumberMax);
 						element_queues.appendChild(fieldset);
 					});
 					document.body.addEventListener('click', pointerEvent=>{
@@ -308,7 +318,9 @@
 				}
 				function raise(elementCounter){
 					let currentValue = parseInt(elementCounter.innerHTML);
-					elementCounter.innerHTML = Math.max(1, (currentValue+1)%10);
+					let max = parseInt(elementCounter.max);
+					debugger
+					elementCounter.innerHTML = Math.max(1, (currentValue+1)%currentMax);
 					notification.play();
 				}
 			}
