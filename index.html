@@ -97,6 +97,8 @@
 				let element_queues = document.getElementById('queues');
 				let element_terminalConfig = document.getElementById('terminal-config');
 				let element_terminalConfig_nickname = document.getElementById('terminal-config-nickname');
+				let element_terminalConfig_availableQueues = document.getElementById('terminal-config-available-queues');
+				let element_terminalConfig_selectedQueues = document.getElementById('terminal-config-selected-queues');
 				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 				let peer;
 				let updateUICallback = ()=>console.error('Callback `updateUICallback` is not defined.');
@@ -110,17 +112,48 @@
 						state.terminals.forEach(t => {
 							let terminalItem_name = document.getElementById('terminal-'+t.id+'-name');
 							terminalItem_name.innerHTML = t.nickname ? t.nickname : t.id;
-						})
+						});
+						state.queues.forEach(q => {
+							if(![...document.getElementsByTagName('legend')].find(l => l.innerHTML === q.name)){
+								function validateAndUpdate(){
+									if(0 < queueNumber.max){
+										queueNumber.valueAsNumber = Math.max(queueNumber.min, queueNumber.valueAsNumber%queueNumber.max);
+									}
+									state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
+								}
+								let fieldset = document.createElement('fieldset');
+								fieldset.classList.add('expandable');
+								let legend = document.createElement('legend');
+								legend.innerHTML = q.name;
+								fieldset.appendChild(legend);
+								let queueNumber = document.createElement('input');
+								queueNumber.type = 'number';
+								queueNumber.value = 1;
+								queueNumber.min = 1;
+								queueNumber.onkeyup = keyboardEvent => {
+									if(keyboardEvent.code === 'Space'){
+										queueNumber.valueAsNumber++;
+										validateAndUpdate();
+									}
+								}
+								queueNumber.onchange = validateAndUpdate;
+								fieldset.appendChild(queueNumber);
+								let queueNumberMax = document.createElement('input');
+								queueNumberMax.type = 'number';
+								queueNumberMax.value = 9;
+								queueNumberMax.min = 0;
+								queueNumberMax.onchange = ()=>{
+									queueNumber.max = 0 < queueNumberMax.valueAsNumber ? queueNumberMax.valueAsNumber+1 : undefined;
+								};
+								queueNumberMax.onchange(),
+								fieldset.appendChild(queueNumberMax);
+								element_queues.appendChild(fieldset);
+							}
+						});
 					}
 					let state = {
 						terminals: [],
-						queues: [
-							/*{ // Example
-								name: 'name',
-								value: 0,
-								ticketsRaised: 1
-							}*/
-						]
+						queues: []
 					};
 					let connections = [];
 					function syncState(previousState){
@@ -139,13 +172,7 @@
 						state.terminals.push({
 							id: dataConnection.peer,
 								nickname: '',
-								display: [
-									/*{
-										queue: 'name',
-										displayName: false,
-										ticketRaiser: false
-									}*/
-								]
+								display: [/*{queue: 'name', displayName: false, ticketRaiser: false}*/]
 						});
 						let div = document.createElement('div');
 						let speakerCheckbox = document.createElement('input');
@@ -158,11 +185,42 @@
 						terminalName.innerHTML = '<span id="terminal-'+dataConnection.peer+'-name">'+dataConnection.peer+'</span> 🔧';
 						terminalName.classList.add('clickable');
 						terminalName.onclick = ()=>{
+							function createDraggable(q, parent){
+								let draggable = document.createElement('div');
+								draggable.innerHTML = q.name;
+								draggable.id = 'draggable-'+q.name;
+								draggable.classList.add('selectable-queue');
+								draggable.draggable = true;
+								draggable.ondragstart = event=>{
+									event.dataTransfer.setData('text', event.target.id);
+								};
+								parent.appendChild(draggable);
+							}
+							[...document.getElementsByClassName('selectable-queue')].forEach(element => {
+								element.parentElement.removeChild(element);
+							});
+							[element_terminalConfig_availableQueues, element_terminalConfig_selectedQueues].forEach(element => {
+								element.ondragover = event=>{
+									event.preventDefault();
+								}
+								element_terminalConfig_selectedQueues.ondrop = event=>{
+									event.preventDefault();
+									element.appendChild(document.getElementById(event.dataTransfer.getData('text')));
+								}
+							});
 							element_terminals.classList.add('hidden');
 							element_queues.classList.add('hidden');
 							state.terminals.filter(t => t.id === dataConnection.peer).forEach(t => {
 								element_terminalConfig_nickname.value = t.nickname;
 								element_terminalConfig_nickname.placeholder = t.id;
+								t.display.forEach(q =>{
+									createDraggable(q, element_terminalConfig_selectedQueues);
+								});
+								state.queues.forEach(q => {
+									if(!document.getElementById('draggable-'+q.name)){
+										createDraggable(q, element_terminalConfig_availableQueues);
+									}
+								});
 							});
 							element_terminalConfig.classList.remove('hidden');
 							document.getElementById('terminal-config-id').innerHTML = 'Terminal '+terminalName.innerHTML;
@@ -197,48 +255,18 @@
 						div.parentElement.removeChild(div);
 					}
 					element_addQueue.addEventListener('click', ()=>{
-						function validateAndUpdate(){
-							if(0 < queueNumber.max){
-								queueNumber.valueAsNumber = Math.max(queueNumber.min, queueNumber.valueAsNumber%queueNumber.max);
-							}
-							state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
-						}
-						let fieldset = document.createElement('fieldset');
-						fieldset.classList.add('expandable');
-						let legend = document.createElement('legend');
+						let name;
 						do{
-							legend.innerHTML = prompt('Name of the queue:');
-							if(legend.innerHTML === ''){
+							name = prompt('Name of the queue:');
+							if(name === ''){
 								alert('Error: Queue has to have a name.');
 							}
-							if([...document.getElementsByTagName('legend')].find(l => l.innerHTML === legend.innerHTML)){
+							if([...document.getElementsByTagName('legend')].find(l => l.innerHTML === name)){
 								alert('Error: Name already given to another queue.');
-								legend.innerHTML = '';
+								name = '';
 							}
-						}while(legend.innerHTML === '');
-						fieldset.appendChild(legend);
-						let queueNumber = document.createElement('input');
-						queueNumber.type = 'number';
-						queueNumber.value = 1;
-						queueNumber.min = 1;
-						queueNumber.onkeyup = keyboardEvent => {
-							if(keyboardEvent.code === 'Space'){
-								queueNumber.valueAsNumber++;
-								validateAndUpdate();
-							}
-						}
-						queueNumber.onchange = validateAndUpdate;
-						fieldset.appendChild(queueNumber);
-						let queueNumberMax = document.createElement('input');
-						queueNumberMax.type = 'number';
-						queueNumberMax.value = 9;
-						queueNumberMax.min = 0;
-						queueNumberMax.onchange = ()=>{
-							queueNumber.max = 0 < queueNumberMax.valueAsNumber ? queueNumberMax.valueAsNumber+1 : undefined;
-						};
-						queueNumberMax.onchange(),
-						fieldset.appendChild(queueNumberMax);
-						element_queues.appendChild(fieldset);
+						}while(name === '');
+						state.queues.push({name: name, value: 1, ticketsRaised: 0});
 					});
 					document.body.addEventListener('click', pointerEvent=>{
 						if(pointerEvent.srcElement.localName === 'legend' && pointerEvent.srcElement.parentElement.classList.contains('expandable')){
@@ -371,10 +399,10 @@
 						<label for="terminal-config-display-name">Display name</label>
 					</fieldset>
 					<div id="terminal-config-queues">
-						<fieldset>
+						<fieldset id="terminal-config-available-queues">
 							<legend>Available queues</legend>
 						</fieldset>
-						<fieldset>
+						<fieldset id="terminal-config-selected-queues">
 							<legend>Selected queues</legend>
 						</fieldset>
 					</div>
