@@ -105,6 +105,7 @@
 				}
 				window.onhashchange();
 				element_btnHost.addEventListener('click', ()=>{
+					document.title += ' - Admin';
 					updateUICallback = ()=>{
 						state.terminals.forEach(t => {
 							let terminalItem_name = document.getElementById('terminal-'+t.id+'-name');
@@ -275,6 +276,7 @@
 							state.terminals.filter(t => t.id === ID).forEach(thisTerminal => {
 								if(!thisTerminal.display.length){
 									document.getElementById('terminal-id').innerHTML = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
+									document.title = 'Queue terminal - '+document.getElementById('terminal-id').innerHTML;
 								}
 							})
 						}
