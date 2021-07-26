@@ -43,6 +43,21 @@
 			#terminal-config-queues>* {
 				flex-grow: 1;
 			}
+			.queue-name, .terminal-name {
+				width: 100%;
+				font-size: 3vh;
+				position: absolute;
+				text-align: center;
+				font-family: monospace;
+			}
+			.queue-name {
+				color: red;
+				top: 6vh;
+			}
+			.terminal-name {
+				color: white;
+				bottom: 8vh;
+			}
 			.center-height {
 				display: flex;
 				height: 100%;
@@ -54,12 +69,13 @@
 				justify-content: center;
 				align-items: center;
 			}
-			#counters {
+			.counter {
 				cursor: none;
 				user-select: none;
 				color: red;
 				font-family: 'digital-clock-font';
 				font-size: 100vmin;
+				text-align: center;
 			}
 			fieldset.expandable>legend, .clickable {
 				cursor: pointer;
@@ -95,10 +111,12 @@
 				let element_terminal = document.getElementById('terminal');
 				let element_addQueue = document.getElementById('add-queue');
 				let element_queues = document.getElementById('queues');
+				let element_terminalId = document.getElementById('terminal-id');
 				let element_terminalConfig = document.getElementById('terminal-config');
 				let element_terminalConfig_nickname = document.getElementById('terminal-config-nickname');
 				let element_terminalConfig_availableQueues = document.getElementById('terminal-config-available-queues');
 				let element_terminalConfig_selectedQueues = document.getElementById('terminal-config-selected-queues');
+				let element_terminalConfig_displayName = document.getElementById('terminal-config-display-name');
 				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 				let peer;
 				let updateUICallback = ()=>console.error('Callback `updateUICallback` is not defined.');
@@ -109,51 +127,70 @@
 				element_btnHost.addEventListener('click', ()=>{
 					document.title += ' - Admin';
 					updateUICallback = ()=>{
-						state.terminals.forEach(t => {
-							let terminalItem_name = document.getElementById('terminal-'+t.id+'-name');
-							terminalItem_name.innerHTML = t.nickname ? t.nickname : t.id;
-						});
-						state.queues.forEach(q => {
-							if(![...document.getElementsByTagName('legend')].find(l => l.innerHTML === q.name)){
-								function validateAndUpdate(){
-									if(0 < queueNumber.max){
-										queueNumber.valueAsNumber = Math.max(queueNumber.min, queueNumber.valueAsNumber%queueNumber.max);
-									}
-									state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
+						if(peer){
+							localStorage.setItem(peer.id, JSON.stringify(state.queues));
+							state.terminals.forEach(t => {
+								let terminalItem_name = document.getElementById('terminal-'+t.id+'-name');
+								terminalItem_name.innerHTML = t.nickname ? t.nickname : t.id;
+							});
+							[...document.getElementsByClassName('queue-legends')].forEach(legend => {
+								if(!state.queues.find(q => q.name === legend.innerHTML)){
+									legend.parentElement.parentElement.removeChild(legend.parentElement);
 								}
-								let fieldset = document.createElement('fieldset');
-								fieldset.classList.add('expandable');
-								let legend = document.createElement('legend');
-								legend.innerHTML = q.name;
-								fieldset.appendChild(legend);
-								let queueNumber = document.createElement('input');
-								queueNumber.type = 'number';
-								queueNumber.value = 1;
-								queueNumber.min = 1;
-								queueNumber.onkeyup = keyboardEvent => {
-									if(keyboardEvent.code === 'Space'){
-										queueNumber.valueAsNumber++;
-										validateAndUpdate();
+							});
+							state.queues.forEach(q => {
+								if(![...document.getElementsByTagName('legend')].find(l => l.innerHTML === q.name)){
+									function validateAndUpdate(){
+										if(0 < queueNumber.max){
+											queueNumber.valueAsNumber = Math.max(queueNumber.min, queueNumber.valueAsNumber%queueNumber.max);
+										}
+										state.queues.filter(q => q.name === legend.innerHTML).forEach(q => q.value = queueNumber.valueAsNumber);
 									}
+									let fieldset = document.createElement('fieldset');
+									fieldset.classList.add('expandable');
+									let legend = document.createElement('legend');
+									legend.innerHTML = q.name;
+									legend.classList.add('queue-legends');
+									fieldset.appendChild(legend);
+									let queueNumber = document.createElement('input');
+									queueNumber.type = 'number';
+									queueNumber.value = 1;
+									queueNumber.min = 1;
+									queueNumber.onkeyup = keyboardEvent => {
+										if(keyboardEvent.code === 'Space'){
+											queueNumber.valueAsNumber++;
+											validateAndUpdate();
+										}
+									}
+									queueNumber.onchange = validateAndUpdate;
+									fieldset.appendChild(queueNumber);
+									let queueNumberMax = document.createElement('input');
+									queueNumberMax.type = 'number';
+									queueNumberMax.value = 9;
+									queueNumberMax.min = 0;
+									queueNumberMax.onchange = ()=>{
+										queueNumber.max = 0 < queueNumberMax.valueAsNumber ? queueNumberMax.valueAsNumber+1 : undefined;
+									};
+									queueNumberMax.onchange(),
+									fieldset.appendChild(queueNumberMax);
+									let remove = document.createElement('input');
+									remove.type = 'button';
+									remove.value = '✖';
+									remove.onclick = ()=>{
+										let index = state.queues.findIndex(_q => _q.name === q.name);
+										if(-1 < index){
+											state.queues.splice(index, 1);
+										}
+									};
+									fieldset.appendChild(remove);
+									element_queues.appendChild(fieldset);
 								}
-								queueNumber.onchange = validateAndUpdate;
-								fieldset.appendChild(queueNumber);
-								let queueNumberMax = document.createElement('input');
-								queueNumberMax.type = 'number';
-								queueNumberMax.value = 9;
-								queueNumberMax.min = 0;
-								queueNumberMax.onchange = ()=>{
-									queueNumber.max = 0 < queueNumberMax.valueAsNumber ? queueNumberMax.valueAsNumber+1 : undefined;
-								};
-								queueNumberMax.onchange(),
-								fieldset.appendChild(queueNumberMax);
-								element_queues.appendChild(fieldset);
-							}
-						});
+							});
+						}
 					}
 					let state = {
 						terminals: [],
-						queues: []
+						queues: null
 					};
 					let connections = [];
 					function syncState(previousState){
@@ -172,7 +209,8 @@
 						state.terminals.push({
 							id: dataConnection.peer,
 								nickname: '',
-								display: [/*{queue: 'name', displayName: false, ticketRaiser: false}*/]
+								displayName: false,
+								display: []
 						});
 						let div = document.createElement('div');
 						let speakerCheckbox = document.createElement('input');
@@ -185,40 +223,63 @@
 						terminalName.innerHTML = '<span id="terminal-'+dataConnection.peer+'-name">'+dataConnection.peer+'</span> 🔧';
 						terminalName.classList.add('clickable');
 						terminalName.onclick = ()=>{
-							function createDraggable(q, parent){
-								let draggable = document.createElement('div');
-								draggable.innerHTML = q.name;
-								draggable.id = 'draggable-'+q.name;
-								draggable.classList.add('selectable-queue');
-								draggable.draggable = true;
-								draggable.ondragstart = event=>{
-									event.dataTransfer.setData('text', event.target.id);
-								};
-								parent.appendChild(draggable);
+							function createMovable(d, parent){
+								let fieldset = document.createElement('fieldset');
+								fieldset.id = 'selectable-queue-'+d.queue;
+								fieldset.classList.add('selectable-queue');
+								fieldset.dataset.name = d.queue;
+								let legend = document.createElement('legend');
+								legend.innerHTML = d.queue;
+								fieldset.appendChild(legend);
+								let inputMove = document.createElement('input');
+								inputMove.type = 'button';
+								inputMove.value = 'Select';
+								inputMove.onclick = ()=>{
+									if(fieldset.parentElement === element_terminalConfig_availableQueues){
+										[...element_terminalConfig_selectedQueues.getElementsByClassName('selectable-queue')].forEach(element => {element_terminalConfig_availableQueues.appendChild(element)}); console.log('// TEMP: Temporarily only support single queue per terminal. Saves time on CSS.');
+										element_terminalConfig_selectedQueues.appendChild(fieldset);
+									}else{
+										element_terminalConfig_availableQueues.appendChild(fieldset);
+									}
+								}
+								let label;
+								fieldset.appendChild(inputMove);
+								let inputDisplayName = document.createElement('input');
+								inputDisplayName.id = 'inputDisplayName-'+d.queue;
+								inputDisplayName.type = 'checkbox';
+								inputDisplayName.checked = d.displayName;
+								fieldset.appendChild(inputDisplayName);
+								label = document.createElement('label');
+								label.innerHTML = 'Display name';
+								label.for = 'inputDisplayName-'+d.queue;
+								fieldset.appendChild(label);
+								let inputTicketRaiser = document.createElement('input');
+								inputTicketRaiser.id = 'inputTicketRaiser-'+d.queue;
+								inputTicketRaiser.type = 'checkbox';
+								inputTicketRaiser.checked = d.ticketRaiser;
+								inputTicketRaiser.disabled = true;
+								fieldset.appendChild(inputTicketRaiser);
+								label = document.createElement('label');
+								label.innerHTML = 'Ticket raiser';
+								label.for = 'inputTicketRaiser-'+d.queue;
+								fieldset.appendChild(label);
+								parent.appendChild(fieldset);
 							}
 							[...document.getElementsByClassName('selectable-queue')].forEach(element => {
 								element.parentElement.removeChild(element);
-							});
-							[element_terminalConfig_availableQueues, element_terminalConfig_selectedQueues].forEach(element => {
-								element.ondragover = event=>{
-									event.preventDefault();
-								}
-								element_terminalConfig_selectedQueues.ondrop = event=>{
-									event.preventDefault();
-									element.appendChild(document.getElementById(event.dataTransfer.getData('text')));
-								}
 							});
 							element_terminals.classList.add('hidden');
 							element_queues.classList.add('hidden');
 							state.terminals.filter(t => t.id === dataConnection.peer).forEach(t => {
 								element_terminalConfig_nickname.value = t.nickname;
 								element_terminalConfig_nickname.placeholder = t.id;
-								t.display.forEach(q =>{
-									createDraggable(q, element_terminalConfig_selectedQueues);
+								element_terminalConfig_displayName.checked = t.displayName;
+								t.display.forEach(d =>{
+									createMovable(d, element_terminalConfig_selectedQueues);
 								});
 								state.queues.forEach(q => {
-									if(!document.getElementById('draggable-'+q.name)){
-										createDraggable(q, element_terminalConfig_availableQueues);
+									if(!document.getElementById('selectable-queue-'+q.name)){
+										createMovable({queue: q.name}, element_terminalConfig_availableQueues);
 									}
 								});
 							});
@@ -226,7 +287,16 @@
 							document.getElementById('terminal-config-id').innerHTML = 'Terminal '+terminalName.innerHTML;
 							document.getElementById('terminal-config-save').onclick = ()=>{
 								state.terminals.filter(t => t.id === dataConnection.peer).forEach(t => {
+									t.displayName = element_terminalConfig_displayName.checked;
 									t.nickname = element_terminalConfig_nickname.value;
+									t.display = [];
+									[...element_terminalConfig_selectedQueues.getElementsByClassName('selectable-queue')].forEach(element => {
+										t.display.push({
+											queue: element.dataset.name,
+											displayName: document.getElementById('inputDisplayName-'+element.dataset.name).checked,
+											ticketRaiser: document.getElementById('inputTicketRaiser-'+element.dataset.name).checked
+										});
+									});
 								});
 								element_terminalConfig.classList.add('hidden');
 								element_terminals.classList.remove('hidden');
@@ -274,6 +344,10 @@
 						}
 					});
 					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
+						state.queues = JSON.parse(localStorage.getItem(ID));
+						if(!state.queues){
+							state.queues = []
+						}
 						location.hash = ID;
 						element_peerId.innerHTML = ID;
 						element_admin.classList.remove('hidden');
@@ -298,15 +372,48 @@
 					element_joinRoom.classList.add('hidden');
 					//document.getElementById('select-mode').classList.remove('hidden');
 					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.');
-					element_terminal.classList.remove('hidden')
+					element_terminal.classList.remove('hidden');
+					let previousValues = {};
 					peer = createPeer(undefined, ID=>{
 						updateUICallback = state=>{
+							[...document.getElementsByClassName('counter')].forEach(element => {
+								element.parentElement.removeChild(element);
+							});
 							state.terminals.filter(t => t.id === ID).forEach(thisTerminal => {
-								if(!thisTerminal.display.length){
-									document.getElementById('terminal-id').innerHTML = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
-									document.title = 'Queue terminal - '+document.getElementById('terminal-id').innerHTML;
+								let name = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
+								document.title = 'Queue terminal - '+name;
+								if(thisTerminal.display.length){
+									if(thisTerminal.displayName){
+										element_terminalId.classList.add('terminal-name');
+										element_terminalId.parentElement.parentElement.classList.remove('center-height');
+									}else{
+										element_terminalId.parentElement.parentElement.classList.add('hidden');
+									}
+								}else{
+									element_terminalId.parentElement.parentElement.classList.remove('hidden');
+									element_terminalId.parentElement.parentElement.classList.add('center-height');
+									element_terminalId.parentElement.parentElement.classList.remove('terminal-name');
+									element_terminalId.innerHTML = name;
 								}
-							})
+								state.queues.filter(q => thisTerminal.display.map(d => d.queue).includes(q.name)).forEach(q => {
+									let div = document.createElement('div');
+									div.classList.add('counter');
+									let value = document.createElement('div');
+									value.innerHTML = q.value;
+									if(previousValues[q.name] !== q.value){
+										previousValues[q.name] = q.value;
+										notification.play();
+									}
+									div.appendChild(value);
+									if(thisTerminal.display.find(d => q.name === d.queue).displayName){
+										let terminalName = document.createElement('div');
+										terminalName.classList.add('queue-name');
+										terminalName.innerHTML = q.name;
+										div.appendChild(terminalName);
+									}
+									element_terminal.appendChild(div);
+								});
+							});
 						}
 						let id = element_peerIdSelect.value.toLocaleLowerCase();
 						let dataConnection = peer.connect(id);
@@ -345,13 +452,6 @@
 						document.getElementById('error-message').classList.remove('invisible');
 					});
 					return peer;
-				}
-				function raise(elementCounter){
-					let currentValue = parseInt(elementCounter.innerHTML);
-					let max = parseInt(elementCounter.max);
-					debugger
-					elementCounter.innerHTML = Math.max(1, (currentValue+1)%currentMax);
-					notification.play();
 				}
 			}
 		</script>
@@ -419,6 +519,7 @@
 		</div>
 		<div id="queue-ticket" class="hidden">
 			<!--
+				To be used on clients mobile devices.
 				TODO:
 					1. List all queues.
 					2. When click on queue, next ticket is displayed and stored.
