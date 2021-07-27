@@ -140,7 +140,7 @@
 				}
 				element_peerIdSelect.value = localStorage.getItem('previous-id');
 				if(!element_peerIdSelect.value){
-				window.onhashchange();
+					window.onhashchange();
 				}
 				element_btnHost.addEventListener('click', ()=>{
 					document.title += ' - Admin';
