@@ -361,10 +361,11 @@
 						let name;
 						do{
 							name = prompt('Name of the queue:');
-							if(name === ''){
+							if(name === null){
+								return
+							}else if(name === ''){
 								alert('Error: Queue has to have a name.');
-							}
-							if([...document.getElementsByTagName('legend')].find(l => l.innerHTML === name)){
+							}else if([...document.getElementsByTagName('legend')].find(l => l.innerHTML === name)){
 								alert('Error: Name already given to another queue.');
 								name = '';
 							}
