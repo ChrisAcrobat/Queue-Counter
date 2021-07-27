@@ -377,6 +377,8 @@
 						}
 					});
 					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
+						window.onhashchange = undefined;
+						element_peerIdSelect.value = '';
 						state = JSON.parse(localStorage.getItem('host-state@'+ID));
 						if(!state){
 							state = {
@@ -411,6 +413,8 @@
 					element_terminal.classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
+					window.onhashchange = undefined;
+					element_peerIdSelect.value = '';
 					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
 						localStorage.setItem('terminal-id@'+hostId, ID);
 						updateUICallback = state=>{
