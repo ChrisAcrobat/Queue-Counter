@@ -57,6 +57,11 @@
 				color: red;
 				top: 6vh;
 			}
+			#speaker {
+				font-size: xxx-large;
+				text-align:left;
+				width: 1.6em;
+			}
 			input[type="button"].raiser {
 				font-size: xxx-large;
 				display: block;
@@ -144,6 +149,12 @@
 				}
 				element_btnHost.addEventListener('click', ()=>{
 					document.title += ' - Admin';
+					let mediaConnections = [];
+					let mediaStream = null;
+					navigator.mediaDevices.getUserMedia({audio: true}).then(ms => {
+						mediaStream = ms;
+					//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = false);
+					});
 					updateUICallback = ()=>{
 						if(peer){
 							localStorage.setItem('host-state@'+peer.id, JSON.stringify(state));
@@ -151,9 +162,10 @@
 								let terminalName = document.getElementById('terminal-'+t.id+'-name');
 								if(!terminalName){
 									let div = document.createElement('div');
-									let speakerCheckbox = document.createElement('input');
 									div.id = 'terminal-'+t.id;
 									div.classList.add('terminal-item');
+									let speakerCheckbox = document.createElement('input');
+									speakerCheckbox.id = 'speaker-'+t.id;
 									speakerCheckbox.type = 'checkbox';
 									speakerCheckbox.classList.add('speaker');
 									div.appendChild(speakerCheckbox);
@@ -319,12 +331,12 @@
 						terminals: [],
 						queues: []
 					};
-					let connections = [];
+					let dataConnections = [];
 					function syncState(previousState){
 						let currentState = JSON.stringify(state);
 						if(previousState !== currentState){
 							updateUICallback();
-							connections.forEach(dataConnection => {
+							dataConnections.forEach(dataConnection => {
 								dataConnection.send({type: 'state-update', value: JSON.parse(currentState)});
 							});
 						}
@@ -332,7 +344,7 @@
 					}
 					syncState();
 					function addTerminal(dataConnection){
-						connections.push(dataConnection);
+						dataConnections.push(dataConnection);
 						if(state.terminals.find(t => t.id === dataConnection.peer)){
 							dataConnection.send({type: 'state-update', value: state});
 						}else{
@@ -345,20 +357,33 @@
 						}
 					}
 					function removeTerminal(dataConnection){
-						let index = connections.findIndex(d => d === dataConnection);
+						let index = dataConnections.findIndex(d => d === dataConnection);
 						if(-1 < index){
-							connections.splice(index, 1);
+							dataConnections.splice(index, 1);
 						}
 					}
+					let silentSpeaker = '🔈';
+					element_speaker.value = silentSpeaker;
 					element_speaker.onmousedown = ()=>{
-						connections.forEach(c=>{
-							navigator.getUserMedia({audio: true}, stream => {
-								var call = peer.call(c.peer, stream);
-							});
+						element_speaker.value = '🔊';
+					//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = true);
+						dataConnections.forEach(c=>{
+							let speakerCheckbox = document.getElementById('speaker-'+c.peer);
+							if(speakerCheckbox && speakerCheckbox.checked){
+								let mediaConnection = peer.call(c.peer, mediaStream);
+								mediaConnections.push(mediaConnection);
+							}
 						});
 					}
-					element_speaker.onmouseup = ()=>{
-
+					document.documentElement.onmouseup = ()=>{
+						if(element_speaker.value !== silentSpeaker){
+							element_speaker.value = silentSpeaker;
+						//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = false);
+							while(mediaConnections.length){
+								mediaConnections.forEach(mediaConnection => mediaConnection.close());
+								mediaConnections.splice(0, 1);
+							}
+						}
 					}
 					element_addQueue.addEventListener('click', ()=>{
 						let name;
@@ -413,8 +438,7 @@
 				});
 				element_btnJoin.addEventListener('click', ()=>{
 					element_joinRoom.classList.add('hidden');
-					//document.getElementById('select-mode').classList.remove('hidden');
-					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.');
+					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.'); // document.getElementById('select-mode').classList.remove('hidden');
 					element_terminal.classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
@@ -466,9 +490,6 @@
 						let dataConnection = peer.connect(hostId);
 						dataConnection.on('open', ()=>{
 							location.hash = hostId;
-							// Send messages
-							dataConnection.send('2!');
-							// Receive messages
 							dataConnection.on('data', data => {
 								switch(data.type){
 									case 'state-update':
@@ -481,13 +502,16 @@
 							location.reload();
 						});
 					});
-					peer.on('call', call=>{
-						navigator.getUserMedia({audio: true}, stream => {
-							call.answer(stream); // Answer the call with an A/V stream.
-							call.on('stream', remoteStream => {
-								// Show stream in some video/canvas element.
-							});
+					peer.on('call', mediaConnection => {
+						mediaConnection.answer();
+						console.log('mediaConnection:\n', mediaConnection);
+						console.log('remoteStream:\n', mediaConnection.remoteStream);
+						mediaConnection.on('stream', mediaStream => {
+							let audio = new Audio();
+							audio.srcObject = mediaStream;
+							audio.play();
 						});
+						mediaConnection.on('error', console.error);
 					});
 				});
 				function createPeer(id='', callback=()=>{}){
@@ -537,7 +561,7 @@
 				<div>
 					<fieldset id="terminals" class="expandable">
 						<legend>Terminals</legend>
-						<input id="speaker" type="button" value="Speak">
+						<input id="speaker" type="button">
 					</fieldset>
 					<fieldset id="queues" class="expandable">
 						<legend>Queues</legend>
