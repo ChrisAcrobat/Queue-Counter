@@ -491,7 +491,7 @@
 					});
 				});
 				function createPeer(id='', callback=()=>{}){
-					let peer = new Peer(id);
+					peer = new Peer(id);
 					element_peerIdSelect.disabled = true;
 					element_btnHost.disabled = true;
 					element_btnJoin.disabled = true;
