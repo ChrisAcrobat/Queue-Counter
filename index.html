@@ -418,10 +418,10 @@
 					element_terminal.classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
+					localStorage.setItem('previous-id', hostId);
 					window.onhashchange = undefined;
 					element_peerIdSelect.value = '';
 					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
-						localStorage.setItem('previous-id', ID);
 						localStorage.setItem('terminal-id@'+hostId, ID);
 						updateUICallback = state=>{
 							[...document.getElementsByClassName('counter')].forEach(element => {
