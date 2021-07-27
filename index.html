@@ -374,7 +374,9 @@
 					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.');
 					element_terminal.classList.remove('hidden');
 					let previousValues = {};
-					peer = createPeer(undefined, ID=>{
+					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
+					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
+						localStorage.setItem('terminal-id@'+hostId, ID);
 						updateUICallback = state=>{
 							[...document.getElementsByClassName('counter')].forEach(element => {
 								element.parentElement.removeChild(element);
@@ -415,10 +417,9 @@
 								});
 							});
 						}
-						let id = element_peerIdSelect.value.toLocaleLowerCase();
-						let dataConnection = peer.connect(id);
+						let dataConnection = peer.connect(hostId);
 						dataConnection.on('open', ()=>{
-							location.hash = id;
+							location.hash = hostId;
 							// Send messages
 							dataConnection.send('2!');
 							// Receive messages
