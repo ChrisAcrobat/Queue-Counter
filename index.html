@@ -149,12 +149,7 @@
 				}
 				element_btnHost.addEventListener('click', ()=>{
 					document.title += ' - Admin';
-					let mediaConnections = [];
-					let mediaStream = null;
-					navigator.mediaDevices.getUserMedia({audio: true}).then(ms => {
-						mediaStream = ms;
-					//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = false);
-					});
+					let streamConnections = [];
 					updateUICallback = ()=>{
 						if(peer){
 							localStorage.setItem('host-state@'+peer.id, JSON.stringify(state));
@@ -167,6 +162,7 @@
 									let speakerCheckbox = document.createElement('input');
 									speakerCheckbox.id = 'speaker-'+t.id;
 									speakerCheckbox.type = 'checkbox';
+									speakerCheckbox.checked = true;
 									speakerCheckbox.classList.add('speaker');
 									div.appendChild(speakerCheckbox);
 									terminalName = document.createElement('label');
@@ -366,22 +362,24 @@
 					element_speaker.value = silentSpeaker;
 					element_speaker.onmousedown = ()=>{
 						element_speaker.value = '🔊';
-					//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = true);
-						dataConnections.forEach(c=>{
-							let speakerCheckbox = document.getElementById('speaker-'+c.peer);
-							if(speakerCheckbox && speakerCheckbox.checked){
-								let mediaConnection = peer.call(c.peer, mediaStream);
-								mediaConnections.push(mediaConnection);
-							}
+						navigator.mediaDevices.getUserMedia({audio: true}).then(mediaStream => {
+							let streamConnection = {mediaStream: mediaStream, mediaConnections: []};
+							streamConnections.push(streamConnection);
+							dataConnections.forEach(c=>{
+								let speakerCheckbox = document.getElementById('speaker-'+c.peer);
+								if(speakerCheckbox && speakerCheckbox.checked){
+									streamConnection.mediaConnections.push(peer.call(c.peer, mediaStream));
+								}
+							});
 						});
 					}
 					document.documentElement.onmouseup = ()=>{
 						if(element_speaker.value !== silentSpeaker){
 							element_speaker.value = silentSpeaker;
-						//	mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.enabled = false);
-							while(mediaConnections.length){
-								mediaConnections.forEach(mediaConnection => mediaConnection.close());
-								mediaConnections.splice(0, 1);
+							while(streamConnections.length){
+								streamConnections[0].mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.stop());
+								streamConnections[0].mediaConnections.forEach(mediaConnection => mediaConnection.close());
+								streamConnections.splice(0, 1);
 							}
 						}
 					}
@@ -504,8 +502,6 @@
 					});
 					peer.on('call', mediaConnection => {
 						mediaConnection.answer();
-						console.log('mediaConnection:\n', mediaConnection);
-						console.log('remoteStream:\n', mediaConnection.remoteStream);
 						mediaConnection.on('stream', mediaStream => {
 							let audio = new Audio();
 							audio.srcObject = mediaStream;
