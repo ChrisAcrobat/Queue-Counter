@@ -164,7 +164,9 @@
 					let streamConnections = [];
 					updateUICallback = ()=>{
 						if(peer){
+							if(peer.id){
 							localStorage.setItem('host-state@'+peer.id, JSON.stringify(state));
+							}
 							state.terminals.forEach(t => {
 								let terminalName = document.getElementById('terminal-'+t.id+'-name');
 								if(!terminalName){
@@ -365,7 +367,6 @@
 						}
 						setTimeout(syncState, 100, currentState);
 					}
-					syncState();
 					function addTerminal(dataConnection){
 						dataConnections.push(dataConnection);
 						if(state.terminals.find(t => t.id === dataConnection.peer)){
@@ -450,6 +451,7 @@
 							}
 						}
 						location.hash = ID;
+						syncState();
 						element_peerId.innerHTML = ID;
 						element_admin.classList.remove('hidden');
 						peer.on('connection', dataConnection => {
