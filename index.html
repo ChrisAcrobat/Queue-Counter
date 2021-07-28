@@ -511,7 +511,7 @@
 								let name = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
 								document.title = 'Queue terminal - '+name;
 								element_terminalId.innerHTML = name;
-								let action = thisTerminal.display.length && thisTerminal.displayName ? 'remove' : 'add';
+								let action = !thisTerminal.display.length || thisTerminal.displayName ? 'remove' : 'add';
 								element_terminalId.classList[action]('hidden');
 								state.queues.filter(q => thisTerminal.display.map(d => d.queue).includes(q.name)).forEach(q => {
 									let div = document.createElement('div');
