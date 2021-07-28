@@ -44,6 +44,7 @@
 				flex-grow: 1;
 			}
 			.queue-name, .terminal-name {
+				left: 0;
 				width: 100%;
 				font-size: 3vh;
 				position: absolute;
@@ -475,6 +476,7 @@
 					element_btnJoin.disabled = true;
 					let element_terminal = document.getElementById('terminal');
 					let element_terminalId = document.getElementById('terminal-id');
+					let element_counters = document.getElementById('counters');
 					let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 					let speaker = new Audio();
 					speaker.play();
@@ -486,9 +488,9 @@
 					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
 						localStorage.setItem('terminal-id@'+hostId, ID);
 						updateUICallback = state=>{
-							[...document.getElementsByClassName('counter')].forEach(element => {
-								element.parentElement.removeChild(element);
-							});
+							while(element_counters.firstChild){
+								element_counters.removeChild(element_counters.firstChild);
+							};
 							state.terminals.filter(t => t.id === ID).forEach(thisTerminal => {
 								let name = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
 								document.title = 'Queue terminal - '+name;
@@ -511,7 +513,7 @@
 										terminalName.innerHTML = q.name;
 										div.appendChild(terminalName);
 									}
-									element_terminal.appendChild(div);
+									element_counters.appendChild(div);
 								});
 							});
 						}
@@ -616,8 +618,9 @@
 				</fieldset>
 			</div>
 		</div>
-		<div id="terminal" class="hidden">
-			<div id="terminal-id" class="terminal-name" class="center-width"></div>
+		<div id="terminal" class="hidden center-width">
+			<div id="terminal-id" class="terminal-name"></div>
+			<div id="counters"></div>
 		</div>
 		<div id="queue-ticket" class="hidden">
 			<!--
