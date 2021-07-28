@@ -127,9 +127,6 @@
 			.hidden {
 				display: none;
 			}
-			.invisible {
-				visibility: hidden;
-			}
 		</style>
 		<script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
 		<script>
@@ -441,6 +438,7 @@
 						}
 					});
 					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
+						element_joinRoom.classList.add('hidden');
 						localStorage.setItem('previous-id', ID);
 						window.onhashchange = undefined;
 						element_peerIdSelect.value = '';
@@ -472,14 +470,14 @@
 					});
 				});
 				element_btnJoin.addEventListener('click', ()=>{
-					element_joinRoom.classList.add('hidden');
+					element_peerIdSelect.disabled = true;
+					element_btnHost.disabled = true;
+					element_btnJoin.disabled = true;
 					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.'); // document.getElementById('select-mode').classList.remove('hidden');
-					element_terminal.classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
 					localStorage.setItem('previous-id', hostId);
 					window.onhashchange = undefined;
-					element_peerIdSelect.value = '';
 					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
 						localStorage.setItem('terminal-id@'+hostId, ID);
 						updateUICallback = state=>{
@@ -525,6 +523,9 @@
 						let dataConnection = peer.connect(hostId);
 						dataConnection.on('open', ()=>{
 							location.hash = hostId;
+							element_peerIdSelect.value = '';
+							element_joinRoom.classList.add('hidden');
+							element_terminal.classList.remove('hidden');
 							dataConnection.on('data', data => {
 								switch(data.type){
 									case 'state-update':
@@ -553,17 +554,20 @@
 					element_btnHost.disabled = true;
 					element_btnJoin.disabled = true;
 					peer.on('open', ID =>{
-						element_joinRoom.classList.add('hidden');
 						callback(ID);
 					});
 					peer.on('error', err => {
-						element_peerIdSelect.disabled = false;
-						element_btnHost.disabled = false;
-						element_btnJoin.disabled = false;
-						document.getElementById('error-message').innerHTML = err;
-						document.getElementById('error-message').classList.remove('invisible');
+						onLoginError(err);
+						peer.destroy();
 					});
 					return peer;
+				}
+				function onLoginError(message){
+					element_peerIdSelect.disabled = false;
+					element_btnHost.disabled = false;
+					element_btnJoin.disabled = false;
+					document.getElementById('error-message').innerHTML = message;
+					element_joinRoom.classList.remove('hidden');
 				}
 			}
 		</script>
@@ -581,7 +585,7 @@
 					<input id="btn-host" type="button" value="Host">
 					<input id="btn-join" type="button" value="Join">
 				</div>
-				<div id="error-message" class="invisible center-width"></div>
+				<div id="error-message" class="center-width">&nbsp;</div>
 			</div>
 		</div>
 		<div id="select-mode" class="hidden"></div>
