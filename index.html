@@ -143,10 +143,19 @@
 			function a(){
 				let element_joinRoom = document.getElementById('join-room');
 				let element_peerIdSelect = document.getElementById('peer-id-select');
+				let element_previousPeerIds = document.getElementById('previous-peer-ids');
 				let element_btnJoin = document.getElementById('btn-join');
 				let element_btnHost = document.getElementById('btn-host');
 				let peer;
 				let updateUICallback = ()=>console.error('Callback `updateUICallback` is not defined.');
+				let previousPeerIds = JSON.parse(localStorage.getItem('previous-ids'));
+				if(previousPeerIds){
+					previousPeerIds.sort().forEach(key => {
+						let option = document.createElement('option');
+						option.value = key;
+						element_previousPeerIds.appendChild(option);
+					});
+				}
 				window.onhashchange = ()=>{
 					element_peerIdSelect.value = location.hash.substr(1);
 				}
@@ -175,7 +184,7 @@
 					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
 						document.title += ' - Admin';
 						element_joinRoom.classList.add('hidden');
-						localStorage.setItem('previous-id', ID);
+						addPreviousId(ID);
 						window.onhashchange = undefined;
 						element_peerIdSelect.value = '';
 						state = JSON.parse(localStorage.getItem('host-state@'+ID));
@@ -490,7 +499,7 @@
 					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.'); // document.getElementById('select-mode').classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
-					localStorage.setItem('previous-id', hostId);
+					addPreviousId(hostId);
 					window.onhashchange = undefined;
 					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
 						localStorage.setItem('terminal-id@'+hostId, ID);
@@ -579,6 +588,17 @@
 					document.getElementById('error-message').innerHTML = message;
 					element_joinRoom.classList.remove('hidden');
 				}
+				function addPreviousId(id){
+					localStorage.setItem('previous-id', id);
+					previousPeerIds = JSON.parse(localStorage.getItem('previous-ids'));
+					if(!previousPeerIds){
+						previousPeerIds = [];
+					}
+					if(!previousPeerIds.includes(id)){
+						previousPeerIds.push(id);
+					}
+					localStorage.setItem('previous-ids', JSON.stringify(previousPeerIds));
+				}
 			}
 		</script>
 	</head>
@@ -589,7 +609,8 @@
 					<i>Queue ID</i>
 				</div>
 				<div class="center-width">
-					<input id="peer-id-select" type="text">
+					<input id="peer-id-select" list="previous-peer-ids">
+					<datalist id="previous-peer-ids"></datalist>
 				</div>
 				<div class="center-width">
 					<input id="btn-host" type="button" value="Host">
