@@ -20,10 +20,10 @@ A simple queue counter system. Available on [GitHub Pages](https://chrisacrobat.
 ### Terminal (join)
 See _**Terminals**_.
 - - -
-## Future work.
+## Future work
 - After login, select terminal or admin.
 - Adding terminal support for selecting multiple queues.
-- Implement `queue-ticket`.<br>Let users use their device as a digital queue ticket.
+- Implement `queue-ticket`.<br>Let users use their device as a digital queue ticket. Possibly by scanning a QR code. This requires a security overhaul.
 - - -
 ## Special thanks
 ### Font
