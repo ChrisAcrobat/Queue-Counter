@@ -62,6 +62,18 @@
 				text-align:left;
 				width: 1.6em;
 			}
+			.speaker-toggle {
+				display: none;
+			}
+			.terminal-id-name.muted::before {
+				content: '🔇 ';
+			}
+			.terminal-id-name.speak::before {
+				content: '🔈 ';
+			}
+			.terminal-id-name.speaking::before {
+				content: '🔊 ';
+			}
 			input[type="button"].raiser {
 				font-size: xxx-large;
 				display: block;
@@ -93,8 +105,11 @@
 				font-size: 100vmin;
 				text-align: center;
 			}
+			.config {
+				margin-left: 1ex;
+			}
 			.config::after {
-				content: ' 🔧';
+				content: '🔧';
 			}
 			fieldset.expandable>legend, .clickable {
 				cursor: pointer;
@@ -161,15 +176,30 @@
 									div.classList.add('terminal-item');
 									let speakerCheckbox = document.createElement('input');
 									speakerCheckbox.id = 'speaker-'+t.id;
+									speakerCheckbox.classList.add('speaker-toggle');
 									speakerCheckbox.type = 'checkbox';
-									speakerCheckbox.checked = true;
 									speakerCheckbox.classList.add('speaker');
 									div.appendChild(speakerCheckbox);
 									terminalName = document.createElement('label');
 									terminalName.id = 'terminal-'+t.id+'-name';
 									terminalName.classList.add('clickable');
-									terminalName.classList.add('config');
+									terminalName.classList.add('terminal-id-name');
 									terminalName.onclick = ()=>{
+										speakerCheckbox.checked = !speakerCheckbox.checked;
+										if(speakerCheckbox.checked){
+											terminalName.classList.remove('muted');
+											terminalName.classList.add('speak');
+										}else{
+											terminalName.classList.remove('speak');
+											terminalName.classList.add('muted');
+										}
+									}
+									terminalName.onclick();
+									div.appendChild(terminalName);
+									let config = document.createElement('label');
+									config.classList.add('clickable');
+									config.classList.add('config');
+									config.onclick = ()=>{
 										function createMovable(d, parent){
 											let fieldset = document.createElement('fieldset');
 											fieldset.id = 'selectable-queue-'+d.queue;
@@ -250,7 +280,7 @@
 											element_queues.classList.remove('hidden');
 										};
 									}
-									div.appendChild(terminalName);
+									div.appendChild(config);
 									element_terminals.appendChild(div);
 								}
 								terminalName.innerHTML = t.nickname ? t.nickname : t.id;
@@ -368,6 +398,7 @@
 							dataConnections.forEach(c=>{
 								let speakerCheckbox = document.getElementById('speaker-'+c.peer);
 								if(speakerCheckbox && speakerCheckbox.checked){
+									document.getElementById('terminal-'+c.peer+'-name').classList.add('speaking');
 									streamConnection.mediaConnections.push(peer.call(c.peer, mediaStream));
 								}
 							});
@@ -378,7 +409,13 @@
 							element_speaker.value = silentSpeaker;
 							while(streamConnections.length){
 								streamConnections[0].mediaStream.getAudioTracks().forEach(mediaStreamTrack => mediaStreamTrack.stop());
-								streamConnections[0].mediaConnections.forEach(mediaConnection => mediaConnection.close());
+								streamConnections[0].mediaConnections.forEach(mediaConnection => {
+									let terminalName = document.getElementById('terminal-'+mediaConnection.peer+'-name');
+									if(terminalName){
+										terminalName.classList.remove('speaking');
+									}
+									mediaConnection.close();
+								});
 								streamConnections.splice(0, 1);
 							}
 						}
