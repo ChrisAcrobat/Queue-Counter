@@ -102,10 +102,17 @@
 			.counter {
 				cursor: none;
 				user-select: none;
-				color: red;
 				font-family: 'digital-clock-font';
 				font-size: 100vmin;
 				text-align: center;
+			}
+			.counter-background {
+				position: absolute;
+				color: #111;
+			}
+			.counter-value {
+				position: relative;
+				color: red;
 			}
 			.config {
 				margin-left: 1ex;
@@ -500,8 +507,19 @@
 								state.queues.filter(q => thisTerminal.display.map(d => d.queue).includes(q.name)).forEach(q => {
 									let div = document.createElement('div');
 									div.classList.add('counter');
+									let background = document.createElement('div');
+									while(background.innerHTML.length < String(q.rollback).length){
+										background.innerHTML += '8';
+									}
+									background.classList.add('counter-background');
+									div.appendChild(background);
 									let value = document.createElement('div');
-									value.innerHTML = q.value;
+									value.classList.add('counter-value');
+									let valueString = ''+q.value;
+									while(valueString.length < String(q.rollback).length){
+										valueString = '!'+valueString;
+									}
+									value.innerHTML = valueString.replaceAll('!', '&nbsp;');
 									if(previousValues[q.name] !== q.value){
 										previousValues[q.name] = q.value;
 										notification.play();
