@@ -75,9 +75,10 @@
 				content: '🔊 ';
 			}
 			input[type="button"].raiser {
-				font-size: xxx-large;
 				display: block;
 				width: 100%;
+				font-size: 2em;
+				padding: 1ex;
 			}
 			#add-queue {
 				display: block;
@@ -362,7 +363,7 @@
 									fieldset.appendChild(queueNumberMax);
 									let remove = document.createElement('input');
 									remove.type = 'button';
-									remove.value = '✖';
+									remove.value = '✖️';
 									remove.onclick = ()=>{
 										if(confirm('Do you want to remove "'+q.name+'"?')){
 											let index = state.queues.findIndex(_q => _q.name === q.name);
@@ -375,7 +376,7 @@
 									let raise = document.createElement('input');
 									raise.classList.add('raiser');
 									raise.type = 'button';
-									raise.value = '＋';
+									raise.value = '➕';
 									raise.onclick = ()=>{
 										queueNumber.valueAsNumber++;
 										validateAndUpdate();
