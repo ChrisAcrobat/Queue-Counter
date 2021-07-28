@@ -536,6 +536,7 @@
 						mediaConnection.answer();
 						mediaConnection.on('stream', mediaStream => {
 							speaker.srcObject = mediaStream;
+							speaker.play();
 						});
 					});
 				});
