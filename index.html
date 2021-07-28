@@ -303,7 +303,7 @@
 											element_terminalConfig_nickname.value = t.nickname;
 											element_terminalConfig_nickname.placeholder = t.id;
 											element_terminalConfig_displayName.checked = t.displayName;
-											t.display.forEach(d =>{
+											t.display.forEach(d => {
 												createMovable(d, element_terminalConfig_selectedQueues);
 											});
 											state.queues.forEach(q => {
@@ -441,7 +441,7 @@
 						navigator.mediaDevices.getUserMedia({audio: true}).then(mediaStream => {
 							let streamConnection = {mediaStream: mediaStream, mediaConnections: []};
 							streamConnections.push(streamConnection);
-							dataConnections.forEach(c=>{
+							dataConnections.forEach(c => {
 								let speakerCheckbox = document.getElementById('speaker-'+c.peer);
 								if(speakerCheckbox && speakerCheckbox.checked){
 									document.getElementById('terminal-'+c.peer+'-name').classList.add('speaking');
@@ -481,7 +481,7 @@
 						}while(name === '');
 						state.queues.push({name: name, value: 1, rollback: 9, ticketsRaised: 0});
 					});
-					document.body.addEventListener('click', pointerEvent=>{
+					document.body.addEventListener('click', pointerEvent => {
 						if(pointerEvent.srcElement.localName === 'legend' && pointerEvent.srcElement.parentElement.classList.contains('expandable')){
 							pointerEvent.srcElement.parentElement.classList.toggle('collapsed');
 						}
@@ -502,9 +502,9 @@
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
 					addPreviousId(hostId);
 					window.onhashchange = undefined;
-					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID=>{
+					peer = createPeer(localStorage.getItem('terminal-id@'+hostId), ID => {
 						localStorage.setItem('terminal-id@'+hostId, ID);
-						updateUICallback = state=>{
+						updateUICallback = state => {
 							while(element_counters.firstChild){
 								element_counters.removeChild(element_counters.firstChild);
 							};
@@ -573,7 +573,7 @@
 				});
 				function createPeer(id='', callback=()=>{}){
 					peer = new Peer(id);
-					peer.on('open', ID =>{
+					peer.on('open', ID => {
 						callback(ID);
 					});
 					peer.on('error', err => {

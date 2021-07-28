@@ -39,7 +39,7 @@
 					notification.play();
 				}
 				document.body.onclick = raise;
-				document.body.onkeyup = function(keyboardEvent){
+				document.body.onkeyup = keyboardEvent => {
 					if(keyboardEvent.code === 'Space'){
 						raise();
 					}
