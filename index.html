@@ -133,23 +133,9 @@
 			'use strict'
 			function a(){
 				let element_joinRoom = document.getElementById('join-room');
-				let element_admin = document.getElementById('admin');
-				let element_peerId = document.getElementById('peer-id');
 				let element_peerIdSelect = document.getElementById('peer-id-select');
 				let element_btnJoin = document.getElementById('btn-join');
 				let element_btnHost = document.getElementById('btn-host');
-				let element_terminals = document.getElementById('terminals');
-				let element_terminal = document.getElementById('terminal');
-				let element_addQueue = document.getElementById('add-queue');
-				let element_queues = document.getElementById('queues');
-				let element_speaker = document.getElementById('speaker');
-				let element_terminalId = document.getElementById('terminal-id');
-				let element_terminalConfig = document.getElementById('terminal-config');
-				let element_terminalConfig_nickname = document.getElementById('terminal-config-nickname');
-				let element_terminalConfig_availableQueues = document.getElementById('terminal-config-available-queues');
-				let element_terminalConfig_selectedQueues = document.getElementById('terminal-config-selected-queues');
-				let element_terminalConfig_displayName = document.getElementById('terminal-config-display-name');
-				let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
 				let peer;
 				let updateUICallback = ()=>console.error('Callback `updateUICallback` is not defined.');
 				window.onhashchange = ()=>{
@@ -160,12 +146,60 @@
 					window.onhashchange();
 				}
 				element_btnHost.addEventListener('click', ()=>{
-					document.title += ' - Admin';
+					element_peerIdSelect.disabled = true;
+					element_btnHost.disabled = true;
+					element_btnJoin.disabled = true;
+					let element_admin = document.getElementById('admin');
+					let element_peerId = document.getElementById('peer-id');
+					let element_speaker = document.getElementById('speaker');
+					let element_terminals = document.getElementById('terminals');
+					let element_addQueue = document.getElementById('add-queue');
+					let element_queues = document.getElementById('queues');
+					let element_terminalConfig = document.getElementById('terminal-config');
+					let element_terminalConfig_nickname = document.getElementById('terminal-config-nickname');
+					let element_terminalConfig_availableQueues = document.getElementById('terminal-config-available-queues');
+					let element_terminalConfig_selectedQueues = document.getElementById('terminal-config-selected-queues');
+					let element_terminalConfig_displayName = document.getElementById('terminal-config-display-name');
+					let state = {terminals: [], queues: []};
+					let dataConnections = [];
 					let streamConnections = [];
+					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
+						document.title += ' - Admin';
+						element_joinRoom.classList.add('hidden');
+						localStorage.setItem('previous-id', ID);
+						window.onhashchange = undefined;
+						element_peerIdSelect.value = '';
+						state = JSON.parse(localStorage.getItem('host-state@'+ID));
+						if(!state){
+							state = {
+								terminals: [],
+								queues: []
+							}
+						}
+						location.hash = ID;
+						syncState();
+						element_peerId.innerHTML = ID;
+						element_admin.classList.remove('hidden');
+						peer.on('connection', dataConnection => {
+							dataConnection.on('open', ()=>{
+								addTerminal(dataConnection);
+								dataConnection.send(state);
+							});
+							dataConnection.on('data', data => {
+								switch(data.type){
+									case 'queue-change':
+										break
+								}
+							});
+							dataConnection.on('close', ()=>{
+								removeTerminal(dataConnection);
+							});
+						});
+					});
 					updateUICallback = ()=>{
 						if(peer){
 							if(peer.id){
-							localStorage.setItem('host-state@'+peer.id, JSON.stringify(state));
+								localStorage.setItem('host-state@'+peer.id, JSON.stringify(state));
 							}
 							state.terminals.forEach(t => {
 								let terminalName = document.getElementById('terminal-'+t.id+'-name');
@@ -352,11 +386,6 @@
 							});
 						}
 					}
-					let state = {
-						terminals: [],
-						queues: []
-					};
-					let dataConnections = [];
 					function syncState(previousState){
 						let currentState = JSON.stringify(state);
 						if(previousState !== currentState){
@@ -438,43 +467,16 @@
 							pointerEvent.srcElement.parentElement.classList.toggle('collapsed');
 						}
 					});
-					peer = createPeer(element_peerIdSelect.value.toLocaleLowerCase(), ID => {
-						element_joinRoom.classList.add('hidden');
-						localStorage.setItem('previous-id', ID);
-						window.onhashchange = undefined;
-						element_peerIdSelect.value = '';
-						state = JSON.parse(localStorage.getItem('host-state@'+ID));
-						if(!state){
-							state = {
-								terminals: [],
-								queues: []
-							}
-						}
-						location.hash = ID;
-						syncState();
-						element_peerId.innerHTML = ID;
-						element_admin.classList.remove('hidden');
-						peer.on('connection', dataConnection => {
-							dataConnection.on('open', ()=>{
-								addTerminal(dataConnection);
-								dataConnection.send(state);
-							});
-							dataConnection.on('data', data => {
-								switch(data.type){
-									case 'queue-change':
-										break
-								}
-							});
-							dataConnection.on('close', ()=>{
-								removeTerminal(dataConnection);
-							});
-						});
-					});
 				});
 				element_btnJoin.addEventListener('click', ()=>{
 					element_peerIdSelect.disabled = true;
 					element_btnHost.disabled = true;
 					element_btnJoin.disabled = true;
+					let element_terminal = document.getElementById('terminal');
+					let element_terminalId = document.getElementById('terminal-id');
+					let notification = new Audio('Computer Error-SoundBible.com-1655839472.wav');
+					let speaker = new Audio();
+					speaker.play();
 					console.log('// TODO: Display `select-mode` to allow multiple admins in the future.'); // document.getElementById('select-mode').classList.remove('hidden');
 					let previousValues = {};
 					let hostId = element_peerIdSelect.value.toLocaleLowerCase();
@@ -489,19 +491,9 @@
 							state.terminals.filter(t => t.id === ID).forEach(thisTerminal => {
 								let name = thisTerminal.nickname ? thisTerminal.nickname : thisTerminal.id;
 								document.title = 'Queue terminal - '+name;
-								if(thisTerminal.display.length){
-									if(thisTerminal.displayName){
-										element_terminalId.classList.add('terminal-name');
-										element_terminalId.parentElement.parentElement.classList.remove('center-height');
-									}else{
-										element_terminalId.parentElement.parentElement.classList.add('hidden');
-									}
-								}else{
-									element_terminalId.parentElement.parentElement.classList.remove('hidden');
-									element_terminalId.parentElement.parentElement.classList.add('center-height');
-									element_terminalId.parentElement.parentElement.classList.remove('terminal-name');
-									element_terminalId.innerHTML = name;
-								}
+								element_terminalId.innerHTML = name;
+								let action = thisTerminal.display.length && thisTerminal.displayName ? 'remove' : 'add';
+								element_terminalId.classList[action]('hidden');
 								state.queues.filter(q => thisTerminal.display.map(d => d.queue).includes(q.name)).forEach(q => {
 									let div = document.createElement('div');
 									div.classList.add('counter');
@@ -543,18 +535,12 @@
 					peer.on('call', mediaConnection => {
 						mediaConnection.answer();
 						mediaConnection.on('stream', mediaStream => {
-							let audio = new Audio();
-							audio.srcObject = mediaStream;
-							audio.play();
+							speaker.srcObject = mediaStream;
 						});
-						mediaConnection.on('error', console.error);
 					});
 				});
 				function createPeer(id='', callback=()=>{}){
 					peer = new Peer(id);
-					element_peerIdSelect.disabled = true;
-					element_btnHost.disabled = true;
-					element_btnJoin.disabled = true;
 					peer.on('open', ID =>{
 						callback(ID);
 					});
@@ -629,11 +615,7 @@
 			</div>
 		</div>
 		<div id="terminal" class="hidden">
-			<div class="center-height">
-				<div>
-					<div id="terminal-id" class="center-width"></div>
-				</div>
-			</div>
+			<div id="terminal-id" class="terminal-name" class="center-width"></div>
 		</div>
 		<div id="queue-ticket" class="hidden">
 			<!--
