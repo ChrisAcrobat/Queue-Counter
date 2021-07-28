@@ -1,5 +1,5 @@
 # Queue-Counter
-A simple queue counter system. Available on [GitHub Pages](https://chrisacrobat.github.io/Queue-Counter/). An even simpler version for child play is available [here](https://chrisacrobat.github.io/Queue-Counter/original.html).
+A simple queue counter system. Available on [GitHub Pages](https://chrisacrobat.github.io/Queue-Counter/). An simpler version for child play is available [here](https://chrisacrobat.github.io/Queue-Counter/original.html).
 
 ## How to
 ### Admin (host)
